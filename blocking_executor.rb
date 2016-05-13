@@ -7,26 +7,16 @@ class BlockingExecutor < java.util.concurrent.ThreadPoolExecutor
   end
 
   def execute(&task)
-    acquire 
-    begin
-      super(&task)
-    rescue java.util.concurrent.RejectedExecutionException
-      @semaphore.release
-      raise
-    end
+    @semaphore.acquire rescue retry
+    super(&task)
+  rescue java.util.concurrent.RejectedExecutionException
+    @semaphore.release
+    raise
   end
  
   def afterExecute(runnable, throwable)
     super(runnable, throwable)
     @semaphore.release
-  end
-
-private
-
-  def acquire
-    @semaphore.acquire
-  rescue java.lang.InterruptedException
-    retry
   end
 
 end
