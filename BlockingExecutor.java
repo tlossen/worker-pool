@@ -6,9 +6,9 @@ import java.util.concurrent.TimeUnit;
  
 /**
  * An executor which blocks and prevents further tasks from
- * being submitted to the pool when the queue is full.
+ * being submitted to the pool when all threads are working.
  * <p>
- * Source:
+ * Based on BlockingExecutor example by Fahd Shariff.
  * http://fahdshariff.blogspot.de/2013/11/throttling-task-submission-with.html
  * <p>
  * Based on the BoundedExecutor example in:
@@ -16,33 +16,31 @@ import java.util.concurrent.TimeUnit;
  */
 public class BlockingExecutor extends ThreadPoolExecutor 
 {
-  private final Semaphore semaphore;
+  private final Semaphore _semaphore;
  
   /**
    * Creates a BlockingExecutor which will block and prevent further
-   * submission to the pool when the specified queue size has been reached.
+   * submission to the pool when all threads are working.
    *
    * @param poolSize the number of the threads in the pool
    */
   public BlockingExecutor(final int poolSize) {
-    super(poolSize, poolSize, 0L, TimeUnit.MILLISECONDS,
-          new LinkedBlockingQueue<Runnable>());
+    super(poolSize, poolSize, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
  
     // the semaphore is bounding the number of tasks currently executing
-    semaphore = new Semaphore(poolSize);
+    _semaphore = new Semaphore(poolSize);
   }
  
   /**
    * Executes the given task.
-   * This method will block when the semaphore has no permits
-   * i.e. when the queue has reached its capacity.
+   * This method will block when all threads are working.
    */
   @Override
   public void execute(final Runnable task) {
     boolean acquired = false;
     do {
         try {
-            semaphore.acquire();
+            _semaphore.acquire();
             acquired = true;
         } catch (final InterruptedException e) {
             // try again
@@ -52,7 +50,7 @@ public class BlockingExecutor extends ThreadPoolExecutor
     try {
         super.execute(task);
     } catch (final RejectedExecutionException e) {
-        semaphore.release();
+        _semaphore.release();
         throw e;
     }
   }
@@ -60,11 +58,10 @@ public class BlockingExecutor extends ThreadPoolExecutor
   /**
    * Method invoked upon completion of execution of the given Runnable,
    * by the thread that executed the task.
-   * Releases a semaphore permit.
    */
   @Override
   protected void afterExecute(final Runnable r, final Throwable t) {
     super.afterExecute(r, t);
-    semaphore.release();
+    _semaphore.release();
   }
 }
