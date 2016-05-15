@@ -21,5 +21,12 @@ class BlockingExecutor < java.util.concurrent.ThreadPoolExecutor
 
 end
 
-be = BlockingExecutor.new(5)
-100.times { |i| be.execute { sleep(2); puts "hello #{i}" }}
+def println(x)
+  print "#{x}\n"
+end
+
+be = BlockingExecutor.new(3)
+30.times do |i| 
+  be.execute { sleep(1); println "exec #{i}" }
+  println "queued #{i}"
+end
