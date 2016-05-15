@@ -20,13 +20,3 @@ class BlockingExecutor < java.util.concurrent.ThreadPoolExecutor
   end
 
 end
-
-def println(x)
-  print "#{x}\n"
-end
-
-be = BlockingExecutor.new(3)
-30.times do |i| 
-  be.execute { sleep(1); println "exec #{i}" }
-  println "queued #{i}"
-end
